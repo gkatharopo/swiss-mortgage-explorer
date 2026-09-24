@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: swiss-mortgage-explorer
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:server --bind 0.0.0.0:$PORT
+    envVars:
+      - key: DASH_DEBUG
+        value: "0"
+      - key: PYTHON_VERSION
+        value: "3.12.4"
