@@ -1,0 +1,224 @@
+:root {
+  --bg: #0b0d10;
+  --card: #161a20;
+  --border: #2a2f38;
+  --heading: #f5f6f8;
+  --text: #c7ccd4;
+  --muted: #8b93a1;
+  --accent: #4c9aff;
+  --accent-line: #ff5c5c;
+  --ok-bg: #113322;
+  --ok-border: #1f5c3a;
+  --ok-text: #4ade80;
+  --bad-bg: #3a1414;
+  --bad-border: #7a2323;
+  --bad-text: #f87171;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: var(--text);
+}
+
+.app-shell {
+  max-width: 1300px;
+  margin: 32px auto 60px;
+  padding: 0 20px;
+}
+
+.app-header {
+  margin-bottom: 24px;
+  padding-bottom: 14px;
+  border-bottom: 3px solid var(--accent-line);
+}
+
+.app-header h2 {
+  margin: 0 0 4px;
+  font-size: 26px;
+  color: var(--heading);
+}
+
+.app-header p {
+  margin: 0 0 14px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.top-nav {
+  display: flex;
+  gap: 4px;
+}
+
+.top-nav .nav-link {
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--text);
+}
+
+.top-nav .nav-link:hover {
+  background: var(--card);
+  color: var(--heading);
+}
+
+.layout-grid {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.main-col {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.card h4 {
+  margin: 0 0 12px;
+  font-size: 14px;
+  color: var(--heading);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.field {
+  margin-bottom: 14px;
+}
+
+.field label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.field-input {
+  width: 100%;
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--heading);
+  background: #10141a;
+}
+
+.field-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: #12161d;
+}
+
+.flags-checklist {
+  margin-top: 18px;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.flags-checklist label {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.afford-box {
+  border-radius: 10px;
+  padding: 12px 16px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.afford-ok {
+  background: var(--ok-bg);
+  border: 1px solid var(--ok-border);
+  color: var(--ok-text);
+}
+
+.afford-bad {
+  background: var(--bad-bg);
+  border: 1px solid var(--bad-border);
+  color: var(--bad-text);
+}
+
+.scenario-picker .dash-radio-items label {
+  margin-right: 18px;
+  font-size: 13px;
+  color: var(--text);
+}
+
+/* DataTable container */
+.card .dash-table-container {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* Documentation page */
+.docs-card {
+  max-width: 820px;
+}
+
+.docs-markdown h2 {
+  color: var(--heading);
+  font-size: 19px;
+  margin: 28px 0 10px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 6px;
+}
+
+.docs-markdown h2:first-child {
+  margin-top: 0;
+}
+
+.docs-markdown p, .docs-markdown li {
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--text);
+}
+
+.docs-markdown code {
+  background: #10141a;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 12.5px;
+  color: var(--accent);
+}
+
+.docs-markdown pre {
+  background: #10141a;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+  overflow-x: auto;
+}
+
+.docs-markdown pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--text);
+}
+
+.docs-markdown hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 24px 0;
+}
+
+.docs-markdown em {
+  color: var(--muted);
+}
