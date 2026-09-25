@@ -5,84 +5,100 @@ from dash import dcc, html
 dash.register_page(__name__, path="/docs", name="Documentation")
 
 CONTENT = """
-## Architecture
+## About this tool
 
-1. **`Params`** — a frozen dataclass holding every assumption (price, rates, tax,
-   horizon, ...). Frozen so a scenario is always built with `dataclasses.replace`,
-   never mutated in place.
-2. **`simulate()`** — pure model logic. No Dash imports, so it's unit-tested
-   directly (see `tests/test_model.py`) without spinning up a browser.
-3. **`app.py`** — the model plus the Dash app shell: creates the `Dash` instance
-   with `use_pages=True`, builds the nav bar, and renders `dash.page_container`.
-4. **`pages/home.py`** — the interactive dashboard, registered at `/`.
-5. **`pages/docs.py`** — this page, registered at `/docs`.
+A calculator for comparing buying a home in Switzerland against renting an
+equivalent one, over a number of years. Enter your own assumptions on the
+left — price, income, rates, growth — and the results on the right update
+as soon as you finish editing a field.
 
-Page modules use the standalone `@callback` decorator rather than `@app.callback`,
-because Dash imports every file in `pages/` *while `app.py` is still executing*
-(before the `app` object exists) — so a page can't import `app` itself, only
-names already defined above the `Dash(...)` call in `app.py`.
+It's a personal, illustrative model, not financial or tax advice. Every
+default number (rates, tax thresholds, Pillar 3a limits, ...) is a
+placeholder — check it against current figures before relying on any result.
 
-## What the model does
+## Using the calculator
 
-- Simulates a `horizon`-year mortgage: interest, maintenance, amortisation
-  (direct or indirect via Pillar 3a), and the Swiss tax effect, year by year.
-- Runs the same assumptions across four scenarios — fixed vs SARON rate,
-  direct vs indirect amortisation — so they can be compared side by side.
-- Compares the buyer's resulting net wealth against a renter's counterfactual:
-  someone who never buys, invests what the buyer would have put down as
-  equity, and keeps investing the difference whenever owning costs more than
-  renting in a given year.
+**Left column — your assumptions**, grouped into cards:
 
-## Opportunity cost of the equity
+- **Property & purchase** — price, one-off purchase costs, your equity (down
+  payment), and how fast you expect the property to appreciate.
+- **Household & timing** — income, how many years to look ahead, and the
+  year you'd start.
+- **Rent & comparison** — the rent for an equivalent home, how fast rent
+  grows, and the investment return assumed for whichever side — you or a
+  hypothetical renter — ends up with spare cash to invest in a given year.
+- **Fixed-rate schedule** and **SARON schedule** — the mortgage rate,
+  entered in 5-year blocks rather than one flat number, so a future rate
+  change can be modelled directly. Both scenarios are always calculated
+  side by side; these set the assumptions each one runs on.
+- **Second mortgage & Pillar 3a** — how much more the second mortgage costs
+  than the first, the SARON bank margin, and your Pillar 3a settings.
+- **Extra 1st-mortgage amortisation** — optional voluntary overpayments on
+  the first mortgage, which is normally interest-only.
+- **Costs & taxes** — maintenance, Nebenkosten, property tax, the imputed
+  rent used for tax, your marginal tax rate, and the costs of eventually
+  selling.
+- **Flags** — whether you qualify as a first-time buyer and/or are married,
+  which affects the post-2029 interest-deduction rules.
 
-A common gap in naive buy-vs-rent calculators: the equity tied up as a down
-payment could have earned a return elsewhere, and if that's left out, buying
-looks artificially cheap. This model prices it in explicitly:
+**Right column — the results:**
 
-```python
-renter = equity + p.price * p.purchase_cost_pct   # renter's pot starts where
-                                                     # the buyer's equity would go
-...
-owner_cash = interest + maintenance + pay + tax     # buyer's total cash cost this year
-renter = renter * (1 + p.invest_return) + (owner_cash - rent)
-```
+- **Affordability** — a quick pass/fail against the two standard Swiss bank
+  rules: your notional mortgage cost must stay under a third of gross
+  income, and your equity must be at least 20%. Also shows what you'd walk
+  away with, after sale costs, if you sold in the final year.
+- **Net wealth: buy vs rent** — the main chart. It plots, for all four
+  scenarios at once (fixed/SARON × direct/indirect amortisation), how much
+  further ahead — or behind — buying leaves you compared with renting, year
+  by year. Above the dotted zero line, buying is ahead; below it, renting
+  is ahead.
+- **Annual cash flows** — pick one of the four scenarios above the chart to
+  see its year-by-year cost breakdown (interest, maintenance, Nebenkosten,
+  property tax, amortisation, tax effect) stacked against what renting
+  would have cost that year.
+- **Year-by-year detail** — the full table behind the charts, including how
+  your wealth splits between equity tied up in the home and money held as
+  investments.
 
-Every year, the renter's portfolio compounds at `invest_return`, **and** if
-owning costs more than renting that year, the renter is credited with
-investing the difference too. So `renter_wealth` is the wealth of someone who
-put the same capital to work in the market instead of a house — the
-opportunity cost is the gap between `owner_wealth` and `renter_wealth`, which
-is exactly what the "Net wealth: buy vs rent" chart plots.
+## Swiss terms used here
 
-## Deliberate simplifications
+- **Eigenmietwert (imputed rental value)** — Switzerland taxes homeowners on
+  a notional rental income for living in their own home, but lets them
+  deduct mortgage interest and maintenance in return. This is scheduled to
+  be abolished from 2029; the calculator switches its tax treatment
+  automatically at your chosen start year.
+- **SARON** — the reference rate Swiss variable/short-fixed mortgages are
+  priced from; the bank adds its own margin on top.
+- **First vs second mortgage** — Swiss mortgages are split in two: the
+  first covers up to two-thirds of the property's value and is typically
+  never paid down; the second (anything above that) must be repaid to zero
+  within 15 years, and usually carries a slightly higher rate.
+- **Direct vs indirect amortisation** — "direct" pays down the second
+  mortgage in cash each year. "Indirect" instead pays the same amount into
+  a Pillar 3a retirement account, used to clear the mortgage much later —
+  keeping the deductible interest higher for longer, in exchange for
+  locking that money away until retirement.
+- **Nebenkosten** — the running costs of a home besides mortgage and
+  maintenance: heating, building insurance, refuse collection, and similar.
+- **Grundstückgewinnsteuer** — the cantonal tax on the gain if you sell,
+  applied here to what the property has appreciated over your original
+  purchase price.
 
-- One marginal tax rate applied to changes in taxable income.
-- Tax regime: imputed rental value (*Eigenmietwert*) taxed, interest and
-  maintenance deductible until end-2028. From 2029: no EMW, no maintenance or
-  interest deduction, except the first-buyer interest deduction (CHF 10k
-  married / 5k single, falling 10%/yr over 10 years; assumed counted from the
-  purchase year — check against the final rules once passed).
-- No capital gains tax, wealth tax, selling costs, or Pillar 3a withdrawal tax.
-- Pillar 3a is only modelled for the owner's indirect amortisation. In
-  reality a renter can also pay into 3a, so the fair 3a comparison is
-  indirect vs direct amortisation, not buy vs rent.
-- Affordability uses the standard Swiss bank rule of thumb: a 5% notional
-  interest rate plus 1% maintenance plus amortisation, capped at a third of
-  gross income — deliberately conservative and rate-independent, as banks
-  use it to stress-test against rate rises.
+## What this tool doesn't account for
 
-## Deployment
-
-`server = app.server` in `app.py` is the WSGI entry point gunicorn serves in
-production (`render.yaml` runs `gunicorn app:server`). Locally,
-`app.run(debug=...)` uses Dash's own dev server, controlled by the
-`DASH_DEBUG` environment variable (defaults to on).
+- A single flat marginal tax rate, rather than Switzerland's actual
+  progressive brackets.
+- No wealth tax, and no tax on withdrawing Pillar 3a at retirement.
+- The renter's own Pillar 3a isn't modelled — only the owner's.
+- Cantonal rules vary considerably (property tax, capital gains tax rate,
+  how imputed rent is calculated); the defaults are generic placeholders,
+  not your canton's actual rules.
 
 ---
 
-*This is a learning project built to practise Dash, not financial advice.
-Every placeholder rate (SARON, fixed rate, Pillar 3a cap, ...) should be
-checked against current figures before drawing any real conclusion from it.*
+*This is a personal learning project, not financial advice. Check every
+default number — rates, tax thresholds, Pillar 3a limits — against current
+figures before drawing any real conclusion from it.*
 """
 
 layout = html.Div(className="card docs-card", children=[

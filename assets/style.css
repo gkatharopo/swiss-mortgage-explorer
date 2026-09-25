@@ -1,4 +1,8 @@
 :root {
+  /* Without this, browsers that respect a dark OS/browser theme render native
+     checkboxes/radios (scenario picker, first-buyer/married flags) using their
+     own dark UA styling — a dark control on our dark card looks invisible. */
+  color-scheme: dark;
   --bg: #0b0d10;
   --card: #161a20;
   --border: #2a2f38;
@@ -69,7 +73,7 @@ body {
 
 .layout-grid {
   display: grid;
-  grid-template-columns: 300px 1fr;
+  grid-template-columns: 340px 1fr;
   gap: 24px;
   align-items: start;
 }
@@ -82,7 +86,7 @@ body {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
-.main-col {
+.sidebar-col, .main-col {
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -108,6 +112,13 @@ body {
   color: var(--text);
 }
 
+.field-help {
+  margin: 0 0 5px;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
 .field-input {
   width: 100%;
   padding: 7px 9px;
@@ -124,6 +135,31 @@ body {
   background: #12161d;
 }
 
+.bucket-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+}
+
+.bucket-field label {
+  display: block;
+  margin-bottom: 3px;
+  font-size: 10px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.bucket-field .field-input {
+  padding: 5px 3px;
+  font-size: 11.5px;
+  text-align: center;
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--accent);
+}
+
 .flags-checklist {
   margin-top: 18px;
   font-size: 13px;
@@ -133,6 +169,14 @@ body {
 .flags-checklist label {
   display: block;
   margin-bottom: 6px;
+}
+
+/* Dash 4's RadioItems/Checklist ("dash-options-list") colors each option's label text
+   from its own built-in per-index palette, not from our CSS — several of those colors
+   are near-black and unreadable against our dark cards. Force them to our own text color. */
+.flags-checklist .dash-options-list-option-text,
+.scenario-picker .dash-options-list-option-text {
+  color: var(--text) !important;
 }
 
 .afford-box {
