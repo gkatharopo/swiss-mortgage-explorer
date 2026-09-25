@@ -1,8 +1,6 @@
-from dataclasses import replace
-
 import pytest
 
-from app import Params, affordability, simulate
+from model import Params, affordability, holding_period_multiplier, simulate
 
 
 def test_second_mortgage_repaid_within_15_years():
@@ -12,11 +10,25 @@ def test_second_mortgage_repaid_within_15_years():
     assert df.debt.iloc[-1] == pytest.approx(first_mortgage)
 
 
-def test_indirect_amortisation_keeps_debt_flat_below_3a_cap():
+def test_indirect_amortisation_keeps_debt_flat_until_the_15_year_settlement():
     p = Params(amort="indirect", pillar3a_cap=1e9)
     df = simulate(p)
-    assert df.debt.tolist() == pytest.approx([p.price * (1 - p.equity_pct)] * len(df))
-    assert df.pillar3a.iloc[-1] > 0
+    # flat for the 14 years the mandatory schedule is still running...
+    assert df.debt.iloc[:-1].tolist() == pytest.approx([p.price * (1 - p.equity_pct)] * (len(df) - 1))
+    # ...then settled via a Pillar 3a withdrawal in the schedule's final year: the second
+    # mortgage (the debt above 2/3 loan-to-value) is fully cleared, not left outstanding
+    assert df.debt.iloc[-1] == pytest.approx(p.price * 2 / 3)
+    assert df.pillar3a.iloc[-1] > 0   # any 3a savings beyond what was owed stay invested
+
+
+def test_indirect_amortisation_matches_direct_after_the_15_year_settlement():
+    # In reality the second mortgage doesn't sit unpaid forever under indirect
+    # amortisation — once the Pillar 3a lump sum settles it, an indirect and a direct
+    # scenario should converge to the same remaining debt and the same interest cost.
+    indirect = simulate(Params(amort="indirect", horizon=20))
+    direct = simulate(Params(amort="direct", horizon=20))
+    assert indirect.debt.iloc[-1] == pytest.approx(direct.debt.iloc[-1])
+    assert indirect.interest.iloc[-1] == pytest.approx(direct.interest.iloc[-1])
 
 
 def test_saron_schedule_raises_rate_at_bucket_boundary():
@@ -99,3 +111,40 @@ def test_higher_rent_favours_buying():
     low = simulate(Params(monthly_rent=2_500)).buy_minus_rent.iloc[-1]
     high = simulate(Params(monthly_rent=4_500)).buy_minus_rent.iloc[-1]
     assert high > low
+
+
+def test_horizon_below_one_raises_instead_of_crashing_on_empty_dataframe():
+    with pytest.raises(ValueError):
+        simulate(Params(horizon=0))
+
+
+def test_pillar3a_cap_doubles_when_married():
+    married = simulate(Params(amort="indirect", pillar3a_cap=1_000, married=True, horizon=1))
+    single = simulate(Params(amort="indirect", pillar3a_cap=1_000, married=False, horizon=1))
+    assert married.pillar3a.iloc[0] == pytest.approx(2 * single.pillar3a.iloc[0])
+
+
+def test_capital_gains_tax_basis_includes_purchase_costs():
+    # same house appreciation either way; only the taxable gain's cost basis should differ
+    low_costs = simulate(Params(horizon=1, purchase_cost_pct=0.0, capital_gains_tax_pct=0.25))
+    high_costs = simulate(Params(horizon=1, purchase_cost_pct=0.05, capital_gains_tax_pct=0.25))
+    assert high_costs.owner_wealth_net_of_sale.iloc[0] > low_costs.owner_wealth_net_of_sale.iloc[0]
+
+
+def test_holding_period_multiplier_surcharges_a_quick_flip_and_discounts_a_long_hold():
+    assert holding_period_multiplier(1) > 1.0     # sold within 2 years: surcharge
+    assert holding_period_multiplier(3) == 1.0    # 2-4 years: flat rate, no adjustment
+    assert holding_period_multiplier(15) < 1.0    # held well over 5 years: discount
+    assert holding_period_multiplier(100) >= 0.5  # discount is floored, never goes to zero
+
+
+def test_first_time_buyer_deduction_counts_from_purchase_year_not_from_2029():
+    # A purchase before 2029 already burns down its 10-year window before the deduction
+    # regime even takes effect — someone buying in 2027 has 2 years elapsed by 2029, so
+    # their first available (2029) deduction is already reduced to CHF 8k, not the full 10k.
+    # (interest is well above any possible cap here, so taxable = -cap exactly; direct
+    # amortisation means contrib3a is always 0, so it drops out of the taxable formula too.)
+    p = Params(start_year=2027, married=True, first_buyer=True, horizon=3, amort="direct")
+    df = simulate(p)
+    year_2029_tax_effect = df.loc[df.year == 2029, "tax_effect"].iloc[0]
+    assert -year_2029_tax_effect / p.marginal_tax == pytest.approx(8_000)

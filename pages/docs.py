@@ -64,9 +64,13 @@ placeholder — check it against current figures before relying on any result.
 
 - **Eigenmietwert (imputed rental value)** — Switzerland taxes homeowners on
   a notional rental income for living in their own home, but lets them
-  deduct mortgage interest and maintenance in return. This is scheduled to
-  be abolished from 2029; the calculator switches its tax treatment
-  automatically at your chosen start year.
+  deduct mortgage interest and maintenance in return. This is abolished
+  from 1 January 2029; the calculator switches its tax treatment
+  automatically at that calendar year, wherever it falls inside your
+  horizon — not at your chosen start year. A first-time buyer's transitional
+  interest deduction after 2029 is time-limited from *their purchase year*,
+  even if that's before 2029: buying in, say, 2027 already uses up part of
+  that 10-year window before the deduction itself starts applying.
 - **SARON** — the reference rate Swiss variable/short-fixed mortgages are
   priced from; the bank adds its own margin on top.
 - **First vs second mortgage** — Swiss mortgages are split in two: the
@@ -75,14 +79,20 @@ placeholder — check it against current figures before relying on any result.
   within 15 years, and usually carries a slightly higher rate.
 - **Direct vs indirect amortisation** — "direct" pays down the second
   mortgage in cash each year. "Indirect" instead pays the same amount into
-  a Pillar 3a retirement account, used to clear the mortgage much later —
-  keeping the deductible interest higher for longer, in exchange for
-  locking that money away until retirement.
+  a Pillar 3a account, keeping the mortgage (and its deductible interest)
+  higher for longer. The second mortgage still has to be repaid by the end
+  of the mandatory schedule either way: this calculator settles it with a
+  lump-sum Pillar 3a withdrawal once the 15 years are up, rather than
+  leaving it on the books indefinitely. Any 3a withdrawal tax on that
+  lump sum isn't modelled.
 - **Nebenkosten** — the running costs of a home besides mortgage and
   maintenance: heating, building insurance, refuse collection, and similar.
 - **Grundstückgewinnsteuer** — the cantonal tax on the gain if you sell,
   applied here to what the property has appreciated over your original
-  purchase price.
+  purchase price. Real schedules also depend on how long you've owned the
+  property — typically a surcharge for a quick flip, tapering to a discount
+  the longer you hold. This calculator applies a rough version of that
+  shape rather than one specific canton's exact table.
 
 ## What this tool doesn't account for
 

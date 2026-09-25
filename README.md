@@ -1,5 +1,7 @@
 # Swiss home financing explorer
 
+[![Tests](https://github.com/gkatharopo/swiss-mortgage-explorer/actions/workflows/tests.yml/badge.svg)](https://github.com/gkatharopo/swiss-mortgage-explorer/actions/workflows/tests.yml)
+
 An interactive Dash app for comparing, in a Swiss context:
 
 - **Buying vs renting**, as the difference in net wealth over time
@@ -21,7 +23,8 @@ An interactive Dash app for comparing, in a Swiss context:
   - **Until end-2028:** the imputed rental value is taxed, and mortgage interest and maintenance are deductible.
   - **From 2029:** neither is deductible, apart from the first-time-buyer interest deduction (up to CHF 10k married / CHF 5k single, reduced by 10% a year over 10 years).
 - The renter invests the down payment and purchase costs, plus each year's difference between the owner's total costs and rent.
-- A "net of sale" wealth figure: sale fees plus capital gains tax on the gain over the purchase price, as if the property were sold that year — shown alongside the mark-to-market figure used for the main chart.
+- A "net of sale" wealth figure: sale fees plus capital gains tax on the gain over the purchase price, as if the property were sold that year — shown alongside the mark-to-market figure used for the main chart. The capital gains rate itself is adjusted by `holding_period_multiplier()` in `model.py`: a surcharge for a quick flip (<2 years), tapering to a discount the longer the property's held — illustrative of typical cantonal practice (e.g. Zürich), not a specific canton's real table.
+- The first-time-buyer interest deduction's 10-year phase-out is counted from the purchase year (`start_year`), not from 2029 — confirmed against post-referendum guidance: a purchase made before 2029 has already burned down part of its 10-year window by the time the deduction regime takes effect.
 
 ## Simplifications
 
@@ -31,15 +34,17 @@ A single marginal tax rate. No wealth tax or Pillar 3a withdrawal tax. The rente
 ## Architecture
 
 ```
-Params (frozen dataclass)  ->  simulate()  ->  pandas DataFrame
-         ^                      pure model logic,         |
-         |                      no Dash imports           v
-   Dash callback  <-------------------------------  figures + table
+model.py: Params (frozen dataclass)  ->  simulate()  ->  pandas DataFrame
+                   ^                      pure model logic,         |
+                   |                      no Dash imports           v
+             Dash callback  <-------------------------------  figures + table
 ```
 
-Keeping the model separate from the UI means it can be unit-tested without a browser (see `tests/`).
+`model.py` holds `Params`, `simulate()` and `affordability()` — no Dash imports, so it's unit-tested directly (see `tests/`) without a browser, and `app.py`, every page module, and the tests all import straight from it. `app.py` is just the Dash app shell: `Dash(..., use_pages=True)`, the nav bar, `dash.page_container`. `pages/home.py` (the dashboard, at `/`) and `pages/docs.py` (at `/docs`) are auto-imported from the `pages/` folder by `use_pages=True`; page modules use the standalone `@callback` decorator rather than `@app.callback`, since a page was never meant to reach back into the `app` object — it registers against Dash's page-agnostic callback registry instead.
 
-`app.py` builds the model, the `Params` dataclass and `simulate()`, then the `Dash(..., use_pages=True)` app shell. `pages/home.py` (the dashboard, at `/`) and `pages/docs.py` (this page's source, at `/docs`) are auto-imported from the `pages/` folder — but that import happens *while `app.py` is still executing*, before the `app` object exists, so page modules use the standalone `@callback` decorator rather than `@app.callback`, and can only import names defined above the `Dash(...)` call in `app.py`.
+### Design note: pattern-matching callbacks
+
+The 3 rate/amortisation schedules (10 five-year buckets each = 30 inputs) use Dash's pattern-matching ids — `{"type": "bucket", "sid": ..., "i": ...}` — rather than 30 individually-named ones. The main callback declares a single `Input({"type": "bucket", "sid": ALL, "i": ALL}, "value")` (+ a matching `State(..., "id")` to know which value belongs to which bucket) instead of 30 positional `Input`s, and the two clientside callbacks that add thousands separators to the CHF-denominated inputs use the same mechanism to cover all 14 currency fields in 2 callbacks instead of 14. This is the standard Dash idiom for "N near-identical inputs" — worth knowing cold for anyone building a Dash app with a variable or large number of like-shaped inputs.
 
 ### Design note: symmetric investing
 
@@ -52,7 +57,12 @@ python -m venv .venv && source .venv/bin/activate
 pip install -r requirements-dev.txt
 python app.py            # http://127.0.0.1:8050
 pytest                   # run the tests
+ruff check .             # lint — same check CI runs on every push
 ```
+
+## CI
+
+`.github/workflows/tests.yml` runs `ruff check .` and `pytest` on every push and pull request. `pyproject.toml` pins the ruff rule set deliberately (pyflakes + pycodestyle errors) rather than accepting its full default — which also flags stylistic choices like `dict(...)` for Plotly's kwargs-style figure properties as errors.
 
 ## Deploy
 

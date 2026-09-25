@@ -1,0 +1,9 @@
+[tool.ruff]
+line-length = 110
+
+[tool.ruff.lint]
+# Pyflakes (real bugs: unused imports, undefined names, ...) plus the pycodestyle
+# error classes. Deliberately not ruff's full default set — that also flags things
+# like dict(...) calls, which read more clearly than {...} for Plotly's kwargs-style
+# figure properties throughout this codebase.
+select = ["E4", "E7", "E9", "F"]
